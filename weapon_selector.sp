@@ -3,18 +3,19 @@
 #include <cstrike>
 #include <clientprefs>
 
-#define DEBUG
+//#define DEBUG
 
-char currentv[32] = "2.0.1";
 #if defined DEBUG
-	//currentv = StrCat(currentv, sizeof(currentv), "_DEBUG");
+	 char currentv[32] = "2.0.1_DEBUG"; // FIXME = SM 1.13 não permite mais esse tipo de concat de strings, precisa ser atualizado depois.
+#else
+	char currentv[32] = "2.0.1";
 #endif
 
 public Plugin myinfo = 
 { 
 	name = "Weapon Selector", 
 	author = "StShAzzy",
-	description = "Allows players to set a preference for weapons after CS:GO inventory services got shut down.", 
+	description = "Allows players to set a weapon preference after CS:GO inventory was broken.", 
 	version = currentv,
 	url = "https://www.github.com/StShAzzy"
 };
