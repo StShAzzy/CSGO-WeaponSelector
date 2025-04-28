@@ -2,13 +2,14 @@
 #include <sdktools>
 #include <cstrike>
 #include <clientprefs>
+#include <morecolors>
 
 //#define DEBUG
 
 #if defined DEBUG
-	 char currentv[32] = "2.0.1_DEBUG"; // FIXME = SM 1.13 não permite mais esse tipo de concat de strings, precisa ser atualizado depois.
+	 char currentv[32] = "2.1.0_DEBUG"; // FIXME = SM 1.13 não permite mais esse tipo de concat de strings, precisa ser atualizado depois.
 #else
-	char currentv[32] = "2.0.1";
+	char currentv[32] = "2.1.0";
 #endif
 
 public Plugin myinfo = 
@@ -28,6 +29,7 @@ bool g_bPrefersM4A1S[MAXPLAYERS + 1] = {false};
 int g_iPlayerNotified[MAXPLAYERS + 1] = {0};
 bool g_bReplaceWep[MAXPLAYERS + 1] = {false};
 Handle Weapons_cookie;
+Handle Replace_cookie;
 int r8Price = 600;
 int deaglePrice = 700;
 int p2000UspPrice = 200;
@@ -54,9 +56,33 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_m4a1s", Command_M4A1S);
 	RegConsoleCmd("sm_m4a4", Command_M4A4);
 	
-	RegConsoleCmd("sm_weaponmenu", Command_CreateMenu);
+	RegConsoleCmd("sm_weaponmenu", Command_CreateMenu, "Opens the weapon selection menu.");
+	
+	RegConsoleCmd("sm_replacement", Command_ToggleCookie, "Enables/Disables the plugin replacing your weapons");
 
 	HookEvent("player_spawn", Player_Spawn);
+	
+	Replace_cookie = RegClientCookie("Replace_cookie", "Should the plugin replace your weapons? 0 != yes | 0 == no", CookieAccess_Protected);
+	
+	for (int client = 1; client <= MaxClients; client++)
+	{
+		if (AreClientCookiesCached(client))
+			OnClientCookiesCached(client);
+	}
+}
+
+public void OnClientCookiesCached(int client)
+{
+	char value[8]
+	GetClientCookie(client, Replace_cookie, value, sizeof(value))
+	if (value[0] != '\0')
+	{
+		g_bReplaceWep[client] = view_as<bool>(StringToInt(value));
+	}
+	else
+	{
+		g_bReplaceWep[client] = false;
+	}
 }
 
 Action Command_CreateMenu(int client, int args)
@@ -129,6 +155,26 @@ public int MenuHandling(Menu menu, MenuAction action, int param1, int param2)
 	return -1;
 }
 
+Action Command_ToggleCookie(int client, int args)
+{
+	if(client == 0) { ReplyToCommand(client, "CONSOLEEEEEEEEEEEEEE!"); return Plugin_Handled;}
+	
+	if(g_bReplaceWep[client] == false)
+	{
+		g_bReplaceWep[client] = !g_bReplaceWep[client];
+		SetClientCookie(client, Replace_cookie, "1");
+		CReplyToCommand(client, "{green}Weapon Replacements {dark_green}enabled");
+		return Plugin_Handled;
+	}
+	else
+	{
+		g_bReplaceWep[client] = !g_bReplaceWep[client];
+		SetClientCookie(client, Replace_cookie, "0");
+		CReplyToCommand(client, "{green}Weapon Replacements {dark_red}disabled");
+		return Plugin_Handled;
+	}
+}
+
 public void OnClientConnected(int client)
 {
 	ResetUserPreference(client);
@@ -153,10 +199,11 @@ public Action HandleSpawn(Handle timer, any userId)
 	if (GetClientTeam(client) <= CS_TEAM_SPECTATOR)
 		return Plugin_Stop;
 
-	if (g_iPlayerNotified[client] <= 0)
+	if (g_iPlayerNotified[client] <= 0 && g_bReplaceWep[client])
 	{
 		PrintToChat(client, "Use \x04!weaponmenu\x01 at any time to set your preference.");
 
+		
 		if (g_bPrefersR8[client])
 			PrintToChat(client, "Current preference: \x04R8 Revolver");
 		else
@@ -179,10 +226,16 @@ public Action HandleSpawn(Handle timer, any userId)
 
 		g_iPlayerNotified[client]++;
 	}
+	if(g_iPlayerNotified[client] <= 0 && !g_bReplaceWep[client])
+	{
+		CPrintToChat(client, "{green}Weapon Replacements{default} is disabled {grey}(will use your inventory if available)");
+		
+		g_iPlayerNotified[client]++;
+	}
 	int clientTeam = GetClientTeam(client);
 	char clientWeapon[32]
 	GetClientWeapon(client, clientWeapon, sizeof(clientWeapon));
-	if(g_bPrefersUSP[client] && clientTeam == CS_TEAM_CT && StrEqual("weapon_hkp2000", clientWeapon, false))
+	if(g_bPrefersUSP[client] && clientTeam == CS_TEAM_CT && StrEqual("weapon_hkp2000", clientWeapon, false) && g_bReplaceWep[client])
 	{
 		#if defined DEBUG
 			PrintToConsoleAll("Attempted to Give USP-S to %d", client);
@@ -297,7 +350,7 @@ public Action Command_Handler(const char[] command, int client, int args)
 
 public Action CS_OnBuyCommand(int client, const char [] szWeapon)
 {
-	if(!IsClientInGame(client) || !IsPlayerAlive(client) || GetEntProp(client, Prop_Send, "m_bInBuyZone") == 0)
+	if(!IsClientInGame(client) || !IsPlayerAlive(client) || !g_bReplaceWep[client] || GetEntProp(client, Prop_Send, "m_bInBuyZone") == 0)
 		return Plugin_Continue;
 	
 	if(GetClientTeam(client) <= CS_TEAM_SPECTATOR)
