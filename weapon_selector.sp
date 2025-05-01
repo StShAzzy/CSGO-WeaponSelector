@@ -7,7 +7,7 @@
 //#define DEBUG
 
 #if defined DEBUG
-	 char currentv[32] = "2.1.0_DEBUG"; // FIXME = SM 1.13 não permite mais esse tipo de concat de strings, precisa ser atualizado depois.
+	 char currentv[32] = "2.1.0_DEBUG";
 #else
 	char currentv[32] = "2.1.0";
 #endif
@@ -27,7 +27,7 @@ bool g_bPrefersUSP[MAXPLAYERS + 1] = {false};
 bool g_bPrefersCZ[MAXPLAYERS + 1] = {false};
 bool g_bPrefersM4A1S[MAXPLAYERS + 1] = {false};
 int g_iPlayerNotified[MAXPLAYERS + 1] = {0};
-bool g_bReplaceWep[MAXPLAYERS + 1] = {false};
+bool g_bReplaceWep[MAXPLAYERS + 1] = {true};
 Handle Weapons_cookie;
 Handle Replace_cookie;
 int r8Price = 600;
@@ -163,14 +163,14 @@ Action Command_ToggleCookie(int client, int args)
 	{
 		g_bReplaceWep[client] = !g_bReplaceWep[client];
 		SetClientCookie(client, Replace_cookie, "1");
-		CReplyToCommand(client, "{green}Weapon Replacements {dark_green}enabled");
+		ReplyToCommand(client, "\x04Weapon Replacements\x01 enabled");
 		return Plugin_Handled;
 	}
 	else
 	{
 		g_bReplaceWep[client] = !g_bReplaceWep[client];
 		SetClientCookie(client, Replace_cookie, "0");
-		CReplyToCommand(client, "{green}Weapon Replacements {dark_red}disabled");
+		CReplyToCommand(client, "\x04Weapon Replacements\x01 disabled");
 		return Plugin_Handled;
 	}
 }
@@ -228,7 +228,7 @@ public Action HandleSpawn(Handle timer, any userId)
 	}
 	if(g_iPlayerNotified[client] <= 0 && !g_bReplaceWep[client])
 	{
-		CPrintToChat(client, "{green}Weapon Replacements{default} is disabled {grey}(will use your inventory if available)");
+		PrintToChat(client, "\x04Weapon Replacements \x01is disabled \x08(will use your inventory if available)");
 		
 		g_iPlayerNotified[client]++;
 	}
