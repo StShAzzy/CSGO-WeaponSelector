@@ -7,9 +7,9 @@
 //#define DEBUG
 
 #if defined DEBUG
-	 char currentv[32] = "2.1.0_DEBUG";
+	 char currentv[32] = "2.2.0_DEBUG";
 #else
-	char currentv[32] = "2.1.0";
+	char currentv[32] = "2.2.0";
 #endif
 
 public Plugin myinfo = 
@@ -26,6 +26,7 @@ bool g_bPrefersR8[MAXPLAYERS + 1] = {false};
 bool g_bPrefersUSP[MAXPLAYERS + 1] = {false};
 bool g_bPrefersCZ[MAXPLAYERS + 1] = {false};
 bool g_bPrefersM4A1S[MAXPLAYERS + 1] = {false};
+bool g_bPrefersMP5[MAXPLAYERS + 1] = {false};
 int g_iPlayerNotified[MAXPLAYERS + 1] = {0};
 bool g_bReplaceWep[MAXPLAYERS + 1] = {true};
 Handle Weapons_cookie;
@@ -36,6 +37,7 @@ int p2000UspPrice = 200;
 int czTecPrice = 500;
 int m4a1sPrice = 2900;
 int m4a4Price = 3100;
+int mp5Price = 1500;
 
 public void OnPluginStart()
 {
@@ -55,6 +57,9 @@ public void OnPluginStart()
 
 	RegConsoleCmd("sm_m4a1s", Command_M4A1S);
 	RegConsoleCmd("sm_m4a4", Command_M4A4);
+	
+	RegConsoleCmd("sm_mp5", Command_MP5);
+	RegConsoleCmd("sm_mp7", Command_MP7);
 	
 	RegConsoleCmd("sm_weaponmenu", Command_CreateMenu, "Opens the weapon selection menu.");
 	
@@ -98,6 +103,8 @@ Action Command_CreateMenu(int client, int args)
 	menu.AddItem("fiveseven", "FiveSeven");
 	menu.AddItem("m4a4", "M4A4");
 	menu.AddItem("m4a1s", "M4A1-S");
+	menu.AddItem("mp5", "MP5");
+	menu.AddItem("mp7", "MP7");
 	
 	menu.Display(client, MENU_TIME_FOREVER);
 	
@@ -147,6 +154,14 @@ public int MenuHandling(Menu menu, MenuAction action, int param1, int param2)
 			if(StrEqual(info, "m4a1s"))
 			{
 				Command_Handler("m4a1s", param1, 0);
+			}
+			if(StrEqual(info, "mp5"))
+			{
+				Command_Handler("mp5", param1, 0);
+			}
+			if(StrEqual(info, "mp7"))
+			{
+				Command_Handler("mp7", param1, 0);
 			}
 		}
 		case MenuAction_End:
@@ -223,6 +238,11 @@ public Action HandleSpawn(Handle timer, any userId)
 			PrintToChat(client, "Current preference: \x04M4A1-S");
 		else
 			PrintToChat(client, "Current preference: \x04M4A4");
+			
+		if (g_bPrefersMP5[client])
+			PrintToChat(client, "Current preference: \x04MP5");
+		else
+			PrintToChat(client, "Current preference: \x04MP7");
 
 		g_iPlayerNotified[client]++;
 	}
@@ -287,6 +307,16 @@ public Action Command_M4A4(int client, int args)
 	return Command_Handler("m4a4", client, args);
 }
 
+public Action Command_MP5(int client, int args)
+{
+	return Command_Handler("mp5", client, args);
+}
+
+public Action Command_MP7(int client, int args)
+{
+	return Command_Handler("mp7", client, args);
+}
+
 public Action Command_Handler(const char[] command, int client, int args)
 {
 	if (args > 1)
@@ -335,10 +365,20 @@ public Action Command_Handler(const char[] command, int client, int args)
 		g_bPrefersCZ[client] = true;
 		weapon = "CZ75-Auto";
 	}
-	else
+	else if (StrEqual(command, "tec9") || StrEqual(command, "fiveseven"))
 	{
 		g_bPrefersCZ[client] = false;
 		weapon = "Tec-9/Five-Seven";
+	}
+	else if (StrEqual(command, "mp5"))
+	{
+		g_bPrefersMP5[client] = true
+		weapon = "MP5"
+	}
+	else if (StrEqual(command, "mp7"))
+	{
+		g_bPrefersMP5[client] = false
+		weapon = "MP7"
 	}
 
 	char com[128] = "Current preference: \x04";
@@ -386,6 +426,10 @@ public Action CS_OnBuyCommand(int client, const char [] szWeapon)
 		else
 			return HandleBuyEvent(client, "weapon_fiveseven", czTecPrice, !g_bPrefersCZ[client]);
 	}
+	else if (StrEqual(str, "weapon_mp7"))
+		return HandleBuyEvent(client, "weapon_mp5sd", mp5Price, g_bPrefersMP5[client]);
+	else if (StrEqual(str, "weapon_mp5sd"))
+		return HandleBuyEvent(client, "weapon_mp7", mp5Price, !g_bPrefersMP5[client]);
 	else
 		return Plugin_Continue;
 }
@@ -415,7 +459,8 @@ public Action HandleBuyEvent(int client, char weapon_replace[32], int price_repl
 	if (money < price_replace){
 		return Plugin_Handled;}
 	
-	if(StrEqual(weapon_replace, "weapon_m4a1", false) || StrEqual(weapon_replace, "weapon_m4a1_silencer", false))
+	if(StrEqual(weapon_replace, "weapon_m4a1", false) || StrEqual(weapon_replace, "weapon_m4a1_silencer", false)
+	|| StrEqual(weapon_replace, "weapon_mp5sd", false) || StrEqual(weapon_replace, "weapon_mp7", false))
 	{
 		if (HasPlayerWeapon(client, weapon_replace))
 			return Plugin_Handled;
